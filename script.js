@@ -36,7 +36,7 @@ function setupAnalyser(source) {
 
 function createVisuals() {
     const radius = 300; // Radius of the circle
-    const geometry = new THREE.TorusGeometry(5, 2, 16, 100);
+    const geometry = new THREE.TorusGeometry(7, 2, 16, 100);
     const numBars = analyser.frequencyBinCount;
     const angleStep = Math.PI * 2 / numBars; // Full circle divided by the number of bars
 
@@ -67,32 +67,19 @@ function animate() {
     analyser.getByteFrequencyData(dataArray);
 
     bars.forEach((bar, i) => {
-        let scale = dataArray[i] / 12;
+        let scale = dataArray[i] / 8;
         bar.scale.y = scale < 1 ? 1 : scale; // Ensure there's always a minimum scale
         bar.material.color.setHSL(scale / 3, 1, 0.5);  // Color transition based on the data
     });
 
-    
+    // Update camera position to spin vertically
+    camera.position.x = 500 * Math.sin(Date.now() * 0.0005);
+    camera.position.y = 500 * Math.cos(Date.now() * 0.0005);  
+    camera.position.z = 500 * Math.cos(Date.now() * 0.0005);
+    camera.lookAt(scene.position);
 
     renderer.render(scene, camera);
 }
-
-document.getElementById('startButton').addEventListener('click', function() {
-    if (!audioContext) {
-        audioContext = new AudioContext();
-    }
-    if (!isPlaying && audioContext.state !== 'running') {
-        // Optionally prompt user to select a file if none has been selected yet
-        if (document.getElementById('fileInput').files.length > 0) {
-            const audioUrl = URL.createObjectURL(document.getElementById('fileInput').files[0]);
-            loadAndPlayAudio(audioUrl);
-            isPlaying = true;
-        } else {
-            alert("Please select a file first.");
-        }
-    }
-});
-
 
 document.getElementById('pauseButton').addEventListener('click', function() {
     if (!audioContext) return;
@@ -115,6 +102,18 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
     }
 });
 
+function setupAudioProcessing(stream) {
+    if (!audioContext) {
+        audioContext = new AudioContext();
+    }
+
+    const source = audioContext.createMediaStreamSource(stream);
+    setupAnalyser(source);
+
+    // Initialize and create visuals as needed
+    createVisuals();
+    animate();
+}
 async function loadAndPlayAudio(filePath) {
     if (source) {
         source.stop();
@@ -132,32 +131,47 @@ async function loadAndPlayAudio(filePath) {
     createVisuals();
     animate();
 }
-function setupCameraControls() {
-    window.addEventListener('keydown', function(event) {
-        console.log("Key pressed:", event.key); // This helps to debug if the correct keys are detected
-        switch (event.key) {
-            case 'w':
-            case 'W':
-                camera.position.z -= 10;
-                break;
-            case 's':
-            case 'S':
-                camera.position.z += 10;
-                break;
-            case 'a':
-            case 'A':
-                camera.position.x -= 10;
-                break;
-            case 'd':
-            case 'D':
-                camera.position.x += 10;
-                break;
-        }
-        camera.lookAt(scene.position); // Keep the camera looking at the center of the scene
-        console.log("Camera position:", camera.position.x, camera.position.z); // Log the updated position
-    });
+async function getMicrophoneInput() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setupAudioProcessing(stream);
+    } catch (err) {
+        console.error('Error accessing the microphone:', err);
+        alert('Could not access the microphone. Please check browser permissions.');
+    }
 }
+async function requestMicrophoneAccess() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone access granted');
+        // Continue setting up audio processing with the stream
+    } catch (error) {
+        console.log('Microphone access denied:', error);
+    }
+}
+async function checkMicrophonePermission() {
+    if (navigator.permissions) {
+        const result = await navigator.permissions.query({ name: 'microphone' });
+        return result.state;
+    } else {
+        return 'unsupported';
+    }
+}
+
+document.getElementById('micButton').addEventListener('click', async function() {
+    const micPermission = await checkMicrophonePermission();
+    if (micPermission === 'prompt' || micPermission === 'denied') {
+        await requestMicrophoneAccess();
+    } else if (micPermission === 'granted') {
+        console.log('Microphone already granted');
+        // Proceed with functionality as the mic is already accessible
+    } else if (micPermission === 'unsupported') {
+        alert('Microphone access is not supported in your browser.');
+    }
+});
 document.addEventListener('DOMContentLoaded', function() {
     initThreeJS();
-    setupCameraControls();
+    document.getElementById('startMicButton').addEventListener('click', function() {
+        getMicrophoneInput();
+    });
 });
