@@ -174,4 +174,21 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startMicButton').addEventListener('click', function() {
         getMicrophoneInput();
     });
+
+    document.getElementById('frequencyRange').addEventListener('change', function(event) {
+        // Adjust the frequency bin count or other parameters based on selection
+        switch(event.target.value) {
+            case 'treble':
+                analyser.fftSize = 2048;
+                break;
+            case 'bass':
+                analyser.fftSize = 512;
+                break;
+            case 'mid':
+                analyser.fftSize = 1024;
+                break;   
+        }
+        createVisuals(); // Re-create visuals with new settings
+    });
+    
 });
