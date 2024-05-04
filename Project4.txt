@@ -1,0 +1,10 @@
+github: bwkoenig27
+netId: bwkoenig
+-[x] successful audio file loading and playback
+-[x] real-time analysis
+-[x] 3D visuals based on audio input
+-[x] different visualization settings(Treble,Mid,Bass)
+-[x] creativity of visualizations
+-[x] Integration of live audio input via microphone
+-[x] able to pause and resume
+-[x] enabled microphone handling
